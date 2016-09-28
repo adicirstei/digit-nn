@@ -31,10 +31,10 @@ let feedforward net a =
 
 
 let backprop net x y =
-  (x, y)
+  ([x], [y])
 
 
-let updateMiniBatch net miniBatch eta =
+let updateMiniBatch net (miniBatch: TrainingData) eta =
   let zeroB = [for b in net.biases -> DenseMatrix.zero<float> (b.RowCount) (b.ColumnCount)]
   let zeroW = [for w in net.weights -> DenseMatrix.zero<float> (w.RowCount) (w.ColumnCount)]
 
@@ -66,7 +66,7 @@ let SGD net (trainingData: TrainingData) epochs miniBatchSize eta testData =
 
 let net = network [2;3;2]
 
-updateMiniBatch net [] 0.001
+
 
 
 
