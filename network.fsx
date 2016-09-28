@@ -25,6 +25,12 @@ let network sizes =
 let sigmoidE (z:float) : float = 1.0 / (1.0 + exp (-z))
 let sigmoid : (Matrix<float> -> Matrix<float>) = Matrix.map sigmoidE
 
+let sigmoidPrime z = (sigmoid z) * (1.0 - (sigmoid z))
+
+let costDerivative outputActivations y = outputActivations - y 
+
+
+
 let feedforward net a =
   List.zip net.biases net.weights 
   |> List.fold (fun s (b,w) -> sigmoid ((w * s) + b) ) a
