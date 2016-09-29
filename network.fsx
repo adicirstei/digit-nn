@@ -21,14 +21,20 @@ let network sizes =
                 DenseMatrix.randomStandard<float> y x ]
   }
 
+let backIt idx = Seq.rev >> Seq.skip (-idx - 1) >> Seq.head
+let sset idx v sq = 
+  let i = if idx < 0 then (List.length sq) + idx else idx
+  let (h, _::t) = List.splitAt i sq
+  h @ [v] @ t
+
+
 
 let sigmoidE (z:float) : float = 1.0 / (1.0 + exp (-z))
 let sigmoid : (Matrix<float> -> Matrix<float>) = Matrix.map sigmoidE
 
 let sigmoidPrime z = (sigmoid z) * (1.0 - (sigmoid z))
 
-let costDerivative outputActivations y = outputActivations - y 
-
+let costDerivative (outputActivations:Matrix<float>) (y:Matrix<float>) : Matrix<float>= outputActivations - y 
 
 
 let feedforward net a =
@@ -37,7 +43,34 @@ let feedforward net a =
 
 
 let backprop net x y =
-  ([x], [y])
+  let zeroB = [for b in net.biases -> DenseMatrix.zero<float> (b.RowCount) (b.ColumnCount)]
+  let zeroW = [for w in net.weights -> DenseMatrix.zero<float> (w.RowCount) (w.ColumnCount)]
+
+  let activations, zs, _ = 
+    Seq.zip net.biases net.weights
+    |> Seq.fold (fun (as', zs, a) (b, w) -> 
+          let z = w * a + b
+          let act = sigmoid z
+          (as' @ [act], zs @ [z], act)
+        ) ([x], [], x)
+
+  let delta = (costDerivative (List.last activations) y) * (sigmoidPrime (List.last zs)) 
+  let nablaB = sset -1 delta zeroB
+  let nablaW = sset -1 (delta * ((backIt -2 activations).Transpose())) zeroW
+
+
+  let (nB, nW, _) = 
+    [2 .. net.numLayers]
+    |> Seq.fold (
+      fun (nb, nw, d) l ->
+        let z = backIt -l zs
+        let sp = sigmoidPrime z
+        let delta = (backIt (-l + 1) net.weights).Transpose() * d
+        let nablab = sset -l delta nb
+        let nablaw = sset -l (delta * (backIt (-l - 1) activations).Transpose()) nw
+        (nablab, nablaw, delta)
+      ) (nablaB, nablaW, delta)
+  (nB, nW)
 
 
 let updateMiniBatch net (miniBatch: TrainingData) eta =
@@ -71,13 +104,5 @@ let SGD net (trainingData: TrainingData) epochs miniBatchSize eta testData =
   ) net
 
 let net = network [2;3;2]
-
-
-
-
-
-
-
-
 
 feedforward net (DenseMatrix.randomStandard<float> 2 1)
