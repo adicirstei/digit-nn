@@ -27,15 +27,17 @@ let sset idx v sq =
   let (h, _::t) = List.splitAt i sq
   h @ [v] @ t
 
+let sigmoid (z:Matrix<float>) : Matrix<float> = 1.0 / (1.0 + (Matrix.map System.Math.Exp (-z)))
 
-
-let sigmoidE (z:float) : float = 1.0 / (1.0 + exp (-z))
-let sigmoid : (Matrix<float> -> Matrix<float>) = Matrix.map sigmoidE
 
 let sigmoidPrime z = (sigmoid z) * (1.0 - (sigmoid z))
 
 let costDerivative (outputActivations:Matrix<float>) (y:Matrix<float>) : Matrix<float>= outputActivations - y 
 
+let toMatrix (b:byte) : Matrix<float> =
+  let m = DenseMatrix.zero<float> 10 1
+  m.[int b, 0] <- 1.0
+  m
 
 let feedforward net a =
   List.zip net.biases net.weights 
@@ -103,6 +105,21 @@ let SGD net (trainingData: TrainingData) epochs miniBatchSize eta testData =
     |> Seq.fold (fun n mb -> updateMiniBatch n mb eta) net
   ) net
 
-let net = network [2;3;2]
+let net = network [28*28;30;10]
+
+#load "mnist.fsx"
+
+
+let data =  Mnist.getData()
+
+let trd, vld, tsd = data
+
+let trainingData:TrainingData = 
+  trd
+  |> Array.map (fun (d, l) -> (DenseMatrix.ofColumnArrays [| Array.map (fun px ->  (float px) / 255.0 ) d |], toMatrix l) )
+  |> Array.toList
+
+SGD net trainingData 30 10 3.0 []
+
 
 feedforward net (DenseMatrix.randomStandard<float> 2 1)
