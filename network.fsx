@@ -95,8 +95,8 @@ let updateMiniBatch net (miniBatch: TrainingData) eta =
       weights = [for w, nw in Seq.zip net.biases nablaW -> w - (eta / float (Seq.length miniBatch)) * nw]
   }
 
-let SGD net (trainingData: TrainingData) epochs miniBatchSize eta testData = 
-  let nTest = Seq.length testData
+let SGD net (trainingData: TrainingData) epochs miniBatchSize eta = 
+//  let nTest = Seq.length testData
   let n = Seq.length trainingData
   seq {1 .. epochs}
   |> Seq.fold (fun net j -> 
@@ -121,7 +121,7 @@ let trainingData:TrainingData =
   |> Array.map (fun (d, l) -> (DenseMatrix.ofColumnArrays [| Array.map (fun px ->  (float px) / 255.0 ) d |], toMatrix l) )
   |> Array.toList
 
-SGD net trainingData 30 10 3.0 []
+SGD net trainingData 30 10 3.0 
 
 
 feedforward net (DenseMatrix.randomStandard<float> 2 1)
