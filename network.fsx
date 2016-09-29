@@ -3,6 +3,7 @@
 open MathNet.Numerics.LinearAlgebra
 //open MathNet.Numerics.LinearAlgebra.Double
 
+
 type Net = {
   numLayers : int
   sizes : int list
@@ -30,7 +31,7 @@ let sset idx v sq =
 let sigmoid (z:Matrix<float>) : Matrix<float> = 1.0 / (1.0 + (Matrix.map System.Math.Exp (-z)))
 
 
-let sigmoidPrime z = (sigmoid z) * (1.0 - (sigmoid z))
+let sigmoidPrime z = (sigmoid z).PointwiseMultiply(1.0 - (sigmoid z))
 
 let costDerivative (outputActivations:Matrix<float>) (y:Matrix<float>) : Matrix<float>= outputActivations - y 
 
@@ -41,7 +42,7 @@ let toMatrix (b:byte) : Matrix<float> =
 
 let feedforward net a =
   List.zip net.biases net.weights 
-  |> List.fold (fun s (b,w) -> sigmoid ((w * s) + b) ) a
+  |> List.fold (fun s (b,w) -> sigmoid (w.PointwiseMultiply(s) + b) ) a
 
 
 let backprop net x y =
@@ -51,14 +52,14 @@ let backprop net x y =
   let activations, zs, _ = 
     Seq.zip net.biases net.weights
     |> Seq.fold (fun (as', zs, a) (b, w) -> 
-          let z = w * a + b
+          let z = w.PointwiseMultiply(a) + b
           let act = sigmoid z
           (as' @ [act], zs @ [z], act)
         ) ([x], [], x)
 
-  let delta = (costDerivative (List.last activations) y) * (sigmoidPrime (List.last zs)) 
+  let delta = (costDerivative (List.last activations) y).PointwiseMultiply(sigmoidPrime (List.last zs)) 
   let nablaB = sset -1 delta zeroB
-  let nablaW = sset -1 (delta * ((backIt -2 activations).Transpose())) zeroW
+  let nablaW = sset -1 (delta.PointwiseMultiply((backIt -2 activations).Transpose())) zeroW
 
 
   let (nB, nW, _) = 
@@ -67,9 +68,9 @@ let backprop net x y =
       fun (nb, nw, d) l ->
         let z = backIt -l zs
         let sp = sigmoidPrime z
-        let delta = (backIt (-l + 1) net.weights).Transpose() * d
+        let delta = ((backIt (-l + 1) net.weights).Transpose() ).PointwiseMultiply(d)
         let nablab = sset -l delta nb
-        let nablaw = sset -l (delta * (backIt (-l - 1) activations).Transpose()) nw
+        let nablaw = sset -l (delta.PointwiseMultiply( (backIt (-l - 1) activations).Transpose())) nw
         (nablab, nablaw, delta)
       ) (nablaB, nablaW, delta)
   (nB, nW)
