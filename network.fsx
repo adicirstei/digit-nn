@@ -46,20 +46,21 @@ let feedforward net a =
 
 
 let backprop net x y =
+  // line 96
   let zeroB = [for b in net.biases -> DenseMatrix.zero<float> (b.RowCount) (b.ColumnCount)]
   let zeroW = [for w in net.weights -> DenseMatrix.zero<float> (w.RowCount) (w.ColumnCount)]
 
   let activations, zs, _ = 
     Seq.zip net.biases net.weights
     |> Seq.fold (fun (as', zs, a) (b, w) -> 
-          let z = w.PointwiseMultiply(a) + b
+          let z = w * a + b
           let act = sigmoid z
           (as' @ [act], zs @ [z], act)
         ) ([x], [], x)
 
   let delta = (costDerivative (List.last activations) y).PointwiseMultiply(sigmoidPrime (List.last zs)) 
   let nablaB = sset -1 delta zeroB
-  let nablaW = sset -1 (delta.PointwiseMultiply((backIt -2 activations).Transpose())) zeroW
+  let nablaW = sset -1 (delta * (backIt -2 activations).Transpose()) zeroW
 
 
   let (nB, nW, _) = 
@@ -68,9 +69,9 @@ let backprop net x y =
       fun (nb, nw, d) l ->
         let z = backIt -l zs
         let sp = sigmoidPrime z
-        let delta = ((backIt (-l + 1) net.weights).Transpose() ).PointwiseMultiply(d)
+        let delta = ((backIt (-l + 1) net.weights).Transpose() ) * d
         let nablab = sset -l delta nb
-        let nablaw = sset -l (delta.PointwiseMultiply( (backIt (-l - 1) activations).Transpose())) nw
+        let nablaw = sset -l (delta * ( (backIt (-l - 1) activations).Transpose())) nw
         (nablab, nablaw, delta)
       ) (nablaB, nablaW, delta)
   (nB, nW)
