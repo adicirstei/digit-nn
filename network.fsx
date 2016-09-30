@@ -1,8 +1,4 @@
-#I "packages/FsPickler/lib/net45"
-
 #load "packages/MathNet.Numerics.FSharp/MathNet.Numerics.fsx"
-
-#r "FsPickler.dll"
 
 open MathNet.Numerics.LinearAlgebra
 //open MathNet.Numerics.LinearAlgebra.Double
@@ -137,21 +133,6 @@ let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) 
   ) net
 
 
-#load "mnist.fsx"
-
-
-
-
-let data =  Mnist.getData()
-
-let trd, vld, tsd = data
-
-let trainingData:TrainingData = 
-  trd
-  |> Array.map (fun (d, l) -> (DenseMatrix.ofColumnArrays [| Array.map (fun px ->  (float px) / 255.0 ) d |], toMatrix l) )
-
-let net = network [28*28;30;10]
-let trainedNet = SGD net trainingData 30 10 3.0 
 
 
 
