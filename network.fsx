@@ -1,4 +1,8 @@
+#I "packages/FsPickler/lib/net45"
+
 #load "packages/MathNet.Numerics.FSharp/MathNet.Numerics.fsx"
+
+#r "FsPickler.dll"
 
 open MathNet.Numerics.LinearAlgebra
 //open MathNet.Numerics.LinearAlgebra.Double
@@ -97,32 +101,45 @@ let updateMiniBatch (net:Net) (miniBatch: MiniBatch) (eta:float) : Net =
           [for (nw, dnw) in List.zip nablaw deltaNablaW -> nw + dnw]
         )
         ) (zeroB, zeroW)
- 
   { net with 
       biases = [for b, nb in List.zip net.biases nablaB -> b - (eta / float (List.length miniBatch)) * nb]
       weights = [for w, nw in List.zip net.weights nablaW -> w - (eta / float (List.length miniBatch)) * nw]
   }
 
+
 let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) (eta:float) : Net = 
 //  let nTest = List.length testData
   let n = Array.length trainingData
   [1 .. epochs]
-  |> List.fold (fun net j -> 
+  |> List.fold (fun nnn j -> 
     
     shuffle trainingData
 
-    let miniBatches = [for k in [0 .. miniBatchSize .. n] ->
+    let miniBatches = [for k in [0 .. miniBatchSize .. (n-1)] ->
                         trainingData.[k..(min (n-1) (k+miniBatchSize-1))]
                         |> Array.toList
                       ]             
     printfn "Running epoch\t%d /\t%d" j epochs
-    miniBatches
-    |> List.fold (fun n mb -> updateMiniBatch n mb eta) net
+//    printfn "Epoch start Net: %A" nnn
+    let newNet = 
+      miniBatches
+      |> List.fold (fun n mb -> 
+      
+//      printfn "minibatch start Net: %A" n
+      
+      let mbn = updateMiniBatch n mb eta
+//      printfn "minibatch end Net: %A" mbn
+      mbn
+      ) nnn
+    printfn "Epoch end Net: %A" newNet
+    newNet
+
   ) net
 
-let net = network [28*28;30;10]
 
 #load "mnist.fsx"
+
+
 
 
 let data =  Mnist.getData()
@@ -133,5 +150,9 @@ let trainingData:TrainingData =
   trd
   |> Array.map (fun (d, l) -> (DenseMatrix.ofColumnArrays [| Array.map (fun px ->  (float px) / 255.0 ) d |], toMatrix l) )
 
+let net = network [28*28;30;10]
+let trainedNet = SGD net trainingData 30 10 3.0 
 
-SGD net trainingData 30 10 3.0 
+
+
+
