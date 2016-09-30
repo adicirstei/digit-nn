@@ -53,7 +53,23 @@ let toMatrix (b:byte) : Matrix<float> =
 
 let feedforward (net:Net) (a:Matrix<float>) : Matrix<float> =
   List.zip net.biases net.weights 
-  |> List.fold (fun s (b,w) -> sigmoid (w.PointwiseMultiply(s) + b) ) a
+  |> List.fold (fun s (b,w) -> sigmoid (w * s + b) ) a
+
+
+let evaluate (net:Net) (testData:TrainingData) : int =
+
+  """Return the number of test inputs for which the neural
+  network outputs the correct result. Note that the neural
+  network's output is assumed to be the index of whichever
+  neuron in the final layer has the highest activation."""
+  |> ignore
+  let testResults = [for (x,y) in testData -> (feedforward net x).Column(0).MaximumIndex() , y.Column(0).MaximumIndex()]
+  testResults
+  |> List.filter (fun (a,b) -> a=b)
+  |> List.length
+
+
+
 
 
 let backprop (net:Net) x y =
@@ -103,8 +119,8 @@ let updateMiniBatch (net:Net) (miniBatch: MiniBatch) (eta:float) : Net =
   }
 
 
-let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) (eta:float) : Net = 
-//  let nTest = List.length testData
+let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) (eta:float) (testData:TrainingData) : Net = 
+  let nTest = Array.length testData
   let n = Array.length trainingData
   [1 .. epochs]
   |> List.fold (fun nnn j -> 
@@ -115,7 +131,7 @@ let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) 
                         trainingData.[k..(min (n-1) (k+miniBatchSize-1))]
                         |> Array.toList
                       ]             
-    printfn "Running epoch\t%d /\t%d" j epochs
+    
 //    printfn "Epoch start Net: %A" nnn
     let newNet = 
       miniBatches
@@ -127,7 +143,11 @@ let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) 
 //      printfn "minibatch end Net: %A" mbn
       mbn
       ) nnn
-    printfn "Epoch end Net: %A" newNet
+    //printfn "Epoch end Net: %A" newNet
+    if nTest > 0 then
+      printfn "Running epoch\t%d /\t%d | %d / %d" j epochs (evaluate newNet testData) nTest
+    else
+      printfn "Running epoch\t%d /\t%d" j epochs
     newNet
 
   ) net

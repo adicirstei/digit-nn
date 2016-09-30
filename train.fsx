@@ -18,8 +18,13 @@ let trainingData:Network.TrainingData =
   trd
   |> Array.map (fun (d, l) -> (DenseMatrix.ofColumnArrays [| Array.map (fun px ->  (float px) ) d |], Network.toMatrix l) )
 
-let net = Network.network [28*28;30;10]
 
-let trainedNet = Network.SGD net trainingData 30 10 3.0 
+let testData:Network.TrainingData = 
+  tsd
+  |> Array.map (fun (d, l) -> (DenseMatrix.ofColumnArrays [| Array.map (fun px ->  (float px) ) d |], Network.toMatrix l) )
 
-Persistence.saveNet trainedNet "nets/trained-30N-30E.net"
+let net = Network.network [28*28;100;10]
+
+let trainedNet = Network.SGD net trainingData 10 10 1.0 testData
+
+Persistence.saveNet trainedNet "nets/trained-100N-10E.net"
