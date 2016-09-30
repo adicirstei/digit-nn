@@ -1,5 +1,4 @@
-#I "packages/FsPickler/lib/net45"
-#r "FsPickler.dll"
+#load "network.fsx"
 
 #load "persistence.fsx"
 #load "mnist.fsx"
@@ -9,6 +8,11 @@ open MathNet.Numerics.LinearAlgebra
 let data =  Mnist.getData()
 
 let trd, vld, tsd = data
+
+// #load "render.fsx"
+
+// Render.renderImage (fst trd.[30])
+// |> printfn "%d\n\n%s" (snd trd.[30]) 
 
 let trainingData:Network.TrainingData = 
   trd

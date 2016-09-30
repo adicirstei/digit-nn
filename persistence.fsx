@@ -1,8 +1,6 @@
 #I "packages/FsPickler/lib/net45"
 #r "FsPickler.dll"
 
-#load "network.fsx"
-
 open MBrace.FsPickler
 let saveNet net file =
   let stream = new System.IO.FileStream(file, System.IO.FileMode.OpenOrCreate)
