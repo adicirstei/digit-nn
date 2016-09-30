@@ -3,6 +3,17 @@
 open MathNet.Numerics.LinearAlgebra
 //open MathNet.Numerics.LinearAlgebra.Double
 
+let rand = new System.Random()
+
+let swap (a: _[]) x y =
+    let tmp = a.[x]
+    a.[x] <- a.[y]
+    a.[y] <- tmp
+
+// shuffle an array (in-place)
+let shuffle a =
+    Array.iteri (fun i _ -> swap a i (rand.Next(i, Array.length a))) a
+
 
 type Net = {
   numLayers : int
@@ -11,9 +22,10 @@ type Net = {
   weights : (Matrix<float>) list
 }
 
-type TrainingData = (Matrix<float> * Matrix<float>) list
+type TrainingData = (Matrix<float> * Matrix<float>) []
+type MiniBatch = (Matrix<float> * Matrix<float>) list
 
-let network sizes =
+let network (sizes: int list) : Net =
   {
     numLayers = List.length sizes
     sizes = sizes
@@ -22,14 +34,13 @@ let network sizes =
                 DenseMatrix.randomStandard<float> y x ]
   }
 
-let backIt idx = Seq.rev >> Seq.skip (-idx - 1) >> Seq.head
+let backIt idx = List.rev >> List.skip (-idx - 1) >> List.head
 let sset idx v sq = 
   let i = if idx < 0 then (List.length sq) + idx else idx
   let (h, _::t) = List.splitAt i sq
   h @ [v] @ t
 
 let sigmoid (z:Matrix<float>) : Matrix<float> = 1.0 / (1.0 + (Matrix.map System.Math.Exp (-z)))
-
 
 let sigmoidPrime z = (sigmoid z).PointwiseMultiply(1.0 - (sigmoid z))
 
@@ -40,32 +51,27 @@ let toMatrix (b:byte) : Matrix<float> =
   m.[int b, 0] <- 1.0
   m
 
-let feedforward net a =
+let feedforward (net:Net) (a:Matrix<float>) : Matrix<float> =
   List.zip net.biases net.weights 
   |> List.fold (fun s (b,w) -> sigmoid (w.PointwiseMultiply(s) + b) ) a
 
 
-let backprop net x y =
-  // line 96
+let backprop (net:Net) x y =
   let zeroB = [for b in net.biases -> DenseMatrix.zero<float> (b.RowCount) (b.ColumnCount)]
   let zeroW = [for w in net.weights -> DenseMatrix.zero<float> (w.RowCount) (w.ColumnCount)]
-
   let activations, zs, _ = 
-    Seq.zip net.biases net.weights
-    |> Seq.fold (fun (as', zs, a) (b, w) -> 
+    List.zip net.biases net.weights
+    |> List.fold (fun (as', zs, a) (b, w) -> 
           let z = w * a + b
           let act = sigmoid z
           (as' @ [act], zs @ [z], act)
         ) ([x], [], x)
-
   let delta = (costDerivative (List.last activations) y).PointwiseMultiply(sigmoidPrime (List.last zs)) 
   let nablaB = sset -1 delta zeroB
   let nablaW = sset -1 (delta * (backIt -2 activations).Transpose()) zeroW
-
-
   let (nB, nW, _) = 
-    [2 .. net.numLayers]
-    |> Seq.fold (
+    [2 .. (net.numLayers - 1)]
+    |> List.fold (
       fun (nb, nw, d) l ->
         let z = backIt -l zs
         let sp = sigmoidPrime z
@@ -77,34 +83,41 @@ let backprop net x y =
   (nB, nW)
 
 
-let updateMiniBatch net (miniBatch: TrainingData) eta =
+let updateMiniBatch (net:Net) (miniBatch: MiniBatch) (eta:float) : Net =
   let zeroB = [for b in net.biases -> DenseMatrix.zero<float> (b.RowCount) (b.ColumnCount)]
   let zeroW = [for w in net.weights -> DenseMatrix.zero<float> (w.RowCount) (w.ColumnCount)]
 
   let nablaB, nablaW = 
     miniBatch
-    |> Seq.fold (fun (nablab, nablaw) (x, y) -> 
+    |> List.fold (fun (nablab, nablaw) (x, y) -> 
+
         let deltaNablaB, deltaNablaW = backprop net x y
-        ( [for (nb, dnb) in Seq.zip nablab deltaNablaB -> nb + dnb], 
-          [for (nw, dnw) in Seq.zip nablaw deltaNablaW -> nw + dnw]
+
+        ( [for (nb, dnb) in List.zip nablab deltaNablaB -> nb + dnb], 
+          [for (nw, dnw) in List.zip nablaw deltaNablaW -> nw + dnw]
         )
         ) (zeroB, zeroW)
-
+ 
   { net with 
-      biases = [for b, nb in Seq.zip net.biases nablaB -> b - (eta / float (Seq.length miniBatch)) * nb]
-      weights = [for w, nw in Seq.zip net.biases nablaW -> w - (eta / float (Seq.length miniBatch)) * nw]
+      biases = [for b, nb in List.zip net.biases nablaB -> b - (eta / float (List.length miniBatch)) * nb]
+      weights = [for w, nw in List.zip net.weights nablaW -> w - (eta / float (List.length miniBatch)) * nw]
   }
 
-let SGD net (trainingData: TrainingData) epochs miniBatchSize eta = 
-//  let nTest = Seq.length testData
-  let n = Seq.length trainingData
-  seq {1 .. epochs}
-  |> Seq.fold (fun net j -> 
+let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) (eta:float) : Net = 
+//  let nTest = List.length testData
+  let n = Array.length trainingData
+  [1 .. epochs]
+  |> List.fold (fun net j -> 
+    
+    shuffle trainingData
+
     let miniBatches = [for k in [0 .. miniBatchSize .. n] ->
                         trainingData.[k..(min (n-1) (k+miniBatchSize-1))]
-                      ]
+                        |> Array.toList
+                      ]             
+    printfn "Running epoch\t%d /\t%d" j epochs
     miniBatches
-    |> Seq.fold (fun n mb -> updateMiniBatch n mb eta) net
+    |> List.fold (fun n mb -> updateMiniBatch n mb eta) net
   ) net
 
 let net = network [28*28;30;10]
@@ -119,9 +132,6 @@ let trd, vld, tsd = data
 let trainingData:TrainingData = 
   trd
   |> Array.map (fun (d, l) -> (DenseMatrix.ofColumnArrays [| Array.map (fun px ->  (float px) / 255.0 ) d |], toMatrix l) )
-  |> Array.toList
+
 
 SGD net trainingData 30 10 3.0 
-
-
-feedforward net (DenseMatrix.randomStandard<float> 2 1)
