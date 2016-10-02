@@ -23,8 +23,8 @@ let testData:Network.TestData =
   tsd
   |> Array.map (fun (d, l) -> (DenseMatrix.ofColumnArrays [| Array.map (fun px ->  (float px) ) d |], l) )
 
-let net = Network.network [784;100;10]
+let net = Network.network [784;56;10]
 
-let trainedNet = Network.SGD net trainingData 50 10 5.0 testData
+let trainedNet = Network.SGD net trainingData 50 10 0.5 testData
 
-Persistence.saveNet trainedNet "nets/trained-100N-50E.net"
+Persistence.saveNet trainedNet "nets/trained-56N-50E.net"
