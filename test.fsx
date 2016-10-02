@@ -9,7 +9,7 @@ let renderResult (r:Matrix<float>) : unit =
   |> List.iter(fun i -> printfn "%d : %f %s" i r.[i,0] (String.replicate (int (r.[i,0] * 100.0)) "*"))
 
 
-let trainedNet = Persistence.loadNet "nets/trained-30N-30E.net"
+let trainedNet = Persistence.loadNet "nets/trained-60N-30N-100E.net"
 
 let data =  Mnist.getData()
 
@@ -18,8 +18,8 @@ let trd, vld, tsd = data
 #load "render.fsx"
 
 Network.shuffle tsd
-tsd
-|> Array.take 100
+vld
+|> Array.take 10
 |> Array.iter (fun el -> 
   let img = DenseMatrix.ofColumnArrays [| fst el |> Array.map (fun px ->  (float px) )  |]
   Render.renderImage (fst el)

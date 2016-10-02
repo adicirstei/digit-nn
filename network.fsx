@@ -23,6 +23,7 @@ type Net = {
 }
 
 type TrainingData = (Matrix<float> * Matrix<float>) []
+type TestData = (Matrix<float> * byte) []
 type MiniBatch = (Matrix<float> * Matrix<float>) list
 
 let network (sizes: int list) : Net =
@@ -56,16 +57,16 @@ let feedforward (net:Net) (a:Matrix<float>) : Matrix<float> =
   |> List.fold (fun s (b,w) -> sigmoid (w * s + b) ) a
 
 
-let evaluate (net:Net) (testData:TrainingData) : int =
+let evaluate (net:Net) (testData:TestData) : int =
 
   """Return the number of test inputs for which the neural
   network outputs the correct result. Note that the neural
   network's output is assumed to be the index of whichever
   neuron in the final layer has the highest activation."""
   |> ignore
-  let testResults = [for (x,y) in testData -> (feedforward net x).Column(0).MaximumIndex() , y.Column(0).MaximumIndex()]
+  let testResults = [for (x,y) in testData -> (feedforward net x).Column(0).MaximumIndex() , y]
   testResults
-  |> List.filter (fun (a,b) -> a=b)
+  |> List.filter (fun (a,b) -> a = int b)
   |> List.length
 
 
@@ -119,7 +120,7 @@ let updateMiniBatch (net:Net) (miniBatch: MiniBatch) (eta:float) : Net =
   }
 
 
-let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) (eta:float) (testData:TrainingData) : Net = 
+let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) (eta:float) (testData:TestData) : Net = 
   let nTest = Array.length testData
   let n = Array.length trainingData
   [1 .. epochs]
