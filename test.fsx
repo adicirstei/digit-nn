@@ -9,7 +9,7 @@ let renderResult (r:Matrix<float>) : unit =
   |> List.iter(fun i -> printfn "%d : %f %s" i r.[i,0] (String.replicate (int (r.[i,0] * 100.0)) "*"))
 
 
-let trainedNet = Persistence.loadNet "nets/trained-60N-30N-100E.net"
+let trainedNet = Persistence.loadNet "nets/trained-44N-5E.net"
 
 let data =  Mnist.getData()
 

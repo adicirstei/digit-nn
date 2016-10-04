@@ -62,6 +62,7 @@ let parse (args:string []) : Arguments [] =
         | MiniBatch mb -> MiniBatch mb
         | Load p -> LoadNetwork p
         | Save p -> SaveNetwork p
+        | Eta e -> Eta e
         | Epochs e -> Epochs e
         | _ -> Program a
       )
