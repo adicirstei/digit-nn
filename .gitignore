@@ -6,3 +6,5 @@ deploy
 .fake
 .VS
 *.net
+
+.DS_STORE
