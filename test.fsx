@@ -40,7 +40,7 @@ let trd, vld, tsd = data
 printfn "Running tests"
 #load "render.fsx"
 
-Network.shuffle tsd
+Array.inPlaceShuffle tsd
 tsd
 |> Array.take 10
 |> Array.iter (fun el -> 

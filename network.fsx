@@ -1,18 +1,13 @@
 #load "packages/MathNet.Numerics.FSharp/MathNet.Numerics.fsx"
+#load "array.fsx"
+
 
 open MathNet.Numerics.LinearAlgebra
 //open MathNet.Numerics.LinearAlgebra.Double
 
-let rand = new System.Random()
 
-let swap (a: _[]) x y =
-    let tmp = a.[x]
-    a.[x] <- a.[y]
-    a.[y] <- tmp
 
-// shuffle an array (in-place)
-let shuffle a =
-    Array.iteri (fun i _ -> swap a i (rand.Next(i, Array.length a))) a
+
 
 
 type Net = {
@@ -126,7 +121,7 @@ let SGD (net:Net) (trainingData: TrainingData) (epochs:int) (miniBatchSize:int) 
   [1 .. epochs]
   |> List.fold (fun nnn j -> 
     
-    shuffle trainingData
+    Array.inPlaceShuffle trainingData
 
     let miniBatches = [for k in [0 .. miniBatchSize .. (n-1)] ->
                         trainingData.[k..(min (n-1) (k+miniBatchSize-1))]
